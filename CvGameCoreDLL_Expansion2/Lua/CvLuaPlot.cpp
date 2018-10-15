@@ -1620,7 +1620,12 @@ int CvLuaPlot::lGetYield(lua_State* L)
 //int calculateNatureYield(YieldTypes eIndex, TeamTypes eTeam, bool bIgnoreFeature = false);
 int CvLuaPlot::lCalculateNatureYield(lua_State* L)
 {
-	return BasicLuaMethod(L, &CvPlot::calculateNatureYield);
+	CvPlot* pkPlot = GetInstance(L); CHECK_PLOT_VALID(pkPlot);
+	const YieldTypes eIndex = (YieldTypes)lua_tointeger(L, 2);
+	const PlayerTypes ePlayer = (PlayerTypes)lua_tointeger(L, 2);
+	const int iResult = pkPlot->calculateNatureYield(eIndex, ePlayer, pkPlot->getPlotCity());
+	lua_pushinteger(L, iResult);
+	return 1;
 }
 //------------------------------------------------------------------------------
 //int calculateBestNatureYield(YieldTypes eIndex, TeamTypes eTeam);
@@ -1651,7 +1656,7 @@ int CvLuaPlot::lCalculateImprovementYieldChange(lua_State* L)
 	const RouteTypes eRoute = (RouteTypes)luaL_optint(L, 5, NUM_ROUTE_TYPES);
 #endif
 
-	const int iResult = pkPlot->calculateImprovementYield(eImprovement, eYield, ePlayer, bOptional, eRoute);
+	const int iResult = pkPlot->calculateImprovementYield(eImprovement, eYield, pkPlot->calculateBestNatureYield(eYield, ePlayer), ePlayer, bOptional, eRoute);
 	lua_pushinteger(L, iResult);
 	return 1;
 }
@@ -2214,7 +2219,7 @@ int CvLuaPlot::lAddPopupMessage(lua_State* L)
 	const float fDelay = (float) luaL_optnumber(L, 3, 0.0);
 	const PlayerTypes ePlayer = (PlayerTypes) luaL_optinteger(L, 4, GC.getGame().getActivePlayer());
 
-	SHOW_PLOT_POPUP(pPlot, ePlayer, szMessage, fDelay);
+	SHOW_PLOT_POPUP(pPlot, ePlayer, szMessage);
 	return 0;
 }
 #endif

@@ -361,6 +361,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 #if defined(MOD_API_LUA_EXTENSIONS) && defined(MOD_BALANCE_CORE_HAPPINESS)
 	Method(GetTheoreticalUnhappinessDecrease);
 	Method(getHappinessDelta);
+	Method(getHappinessThresholdMod);
 	Method(getThresholdSubtractions);
 	Method(getThresholdAdditions);
 	Method(GetUnhappinessFromCultureYield);
@@ -383,6 +384,7 @@ void CvLuaCity::PushMethods(lua_State* L, int t)
 	Method(GetUnhappinessFromPillaged);
 	Method(GetUnhappinessFromStarving);
 	Method(GetUnhappinessFromMinority);
+	Method(getPotentialUnhappinessWithGrowth);
 #endif
 
 	Method(ChangeHealRate);
@@ -3731,6 +3733,27 @@ int CvLuaCity::lgetHappinessDelta(lua_State* L)
 	lua_pushinteger(L, pkCity->getHappinessDelta());
 	return 1;
 }
+//int getHappinessThresholdMod();
+int CvLuaCity::lgetHappinessThresholdMod(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	const YieldTypes eYield = (YieldTypes)lua_tointeger(L, 2);
+	int iResult = pkCity->getHappinessThresholdMod(eYield);
+
+	int iPuppetMod = 0;
+	if (pkCity->IsPuppet())
+		iPuppetMod = GET_PLAYER(pkCity->getOwner()).GetPuppetUnhappinessMod();
+
+	int iCapitalMod = 0;
+	if (pkCity->isCapital())
+		iCapitalMod = GET_PLAYER(pkCity->getOwner()).GetCapitalUnhappinessModCBP();
+
+	iResult += iCapitalMod;
+	iResult += (iPuppetMod * -1);
+
+	lua_pushinteger(L, iResult);
+	return 1;
+}
 //int getThresholdSubtractions();
 int CvLuaCity::lgetThresholdSubtractions(lua_State* L)
 {
@@ -3935,6 +3958,13 @@ int CvLuaCity::lGetUnhappinessFromMinority(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
 	lua_pushinteger(L, pkCity->getUnhappinessFromReligion());
+	return 1;
+}
+
+int CvLuaCity::lgetPotentialUnhappinessWithGrowth(lua_State* L)
+{
+	CvCity* pkCity = GetInstance(L);
+	lua_pushstring(L, pkCity->getPotentialUnhappinessWithGrowth());
 	return 1;
 }
 #endif
@@ -4824,13 +4854,31 @@ int CvLuaCity::lGetSpecialistCityModifier(lua_State* L)
 	const int iIndex = lua_tointeger(L, 2);
 	int iResult = pkCity->GetSpecialistRateModifier(toValue<SpecialistTypes>(L, 2));
 
-	int iNumPuppets = GET_PLAYER(pkCity->getOwner()).GetNumPuppetCities();
-	if(iNumPuppets > 0)
+	GreatPersonTypes eGreatPerson = GetGreatPersonFromSpecialist((SpecialistTypes)toValue<SpecialistTypes>(L, 2));
+
+	if (eGreatPerson != NO_GREATPERSON)
 	{
-		GreatPersonTypes eGreatPerson = GetGreatPersonFromSpecialist((SpecialistTypes)toValue<SpecialistTypes>(L, 2));
-		if(eGreatPerson != NO_GREATPERSON)
+
+		int iNumPuppets = GET_PLAYER(pkCity->getOwner()).GetNumPuppetCities();
+		if (iNumPuppets > 0)
 		{
-			iResult += (iNumPuppets * GET_PLAYER(pkCity->getOwner()).GetPlayerTraits()->GetPerPuppetGreatPersonRateModifier(eGreatPerson));			
+
+			iResult += (iNumPuppets * GET_PLAYER(pkCity->getOwner()).GetPlayerTraits()->GetPerPuppetGreatPersonRateModifier(eGreatPerson));
+		}
+
+		ReligionTypes eMajority = pkCity->GetCityReligions()->GetReligiousMajority();
+		if (eMajority != NO_RELIGION)
+		{
+			const CvReligion* pReligion = GC.getGame().GetGameReligions()->GetReligion(eMajority, pkCity->getOwner());
+			if (pReligion)
+			{
+				iResult += pReligion->m_Beliefs.GetGoldenAgeGreatPersonRateModifier(eGreatPerson, pkCity->getOwner(), pkCity);
+				BeliefTypes eSecondaryPantheon = pkCity->GetCityReligions()->GetSecondaryReligionPantheonBelief();
+				if (eSecondaryPantheon != NO_BELIEF)
+				{
+					iResult += GC.GetGameBeliefs()->GetEntry(eSecondaryPantheon)->GetGoldenAgeGreatPersonRateModifier(eGreatPerson);
+				}
+			}
 		}
 	}
 
@@ -5015,11 +5063,12 @@ int CvLuaCity::lUpdateStrengthValue(lua_State* L)
 	return 1;
 }
 //------------------------------------------------------------------------------
-//int getStrengthValue();
+//int getStrengthValue(bForRangeStrike);
 int CvLuaCity::lGetStrengthValue(lua_State* L)
 {
 	CvCity* pkCity = GetInstance(L);
-	const int iResult = pkCity->getStrengthValue();
+	bool bForRangeStrike = luaL_optbool(L, 2, false);
+	const int iResult = pkCity->getStrengthValue(bForRangeStrike);
 
 	lua_pushinteger(L, iResult);
 	return 1;

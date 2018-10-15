@@ -820,7 +820,7 @@ private:
 	void ReviewUnassignedUnits();
 
 	// Operational AI support functions
-	void ClearEnemiesNearArmy(CvArmyAI* pArmy);
+	bool ClearEnemiesNearArmy(CvArmyAI* pArmy);
 	void MoveWithFormation(CvUnit* pUnit, MultiunitPositionTypes ePosition);
 	void ExecuteGatherMoves(CvArmyAI* pArmy);
 	void ExecuteFormationMoves(CvArmyAI* pArmy, CvPlot *pTurnTarget);
@@ -849,6 +849,7 @@ private:
 #ifdef MOD_CORE_NEW_DEPLOYMENT_LOGIC
 	bool ExecuteSpotterMove(CvPlot* pTargetPlot);
 	bool ExecuteAttackWithUnits(CvPlot* pTargetPlot, eAggressionLevel eAggLvl);
+	bool PositionUnitsAroundTarget(CvPlot* pTargetPlot);
 #endif
 	void ExecuteAirSweep(CvPlot* pTargetPlot);
 	void ExecuteAirAttack(CvPlot* pTargetPlot);
@@ -865,7 +866,7 @@ private:
 	void ExecuteAirSweepMoves();
 	bool ExecuteSafeBombards(CvTacticalTarget& kTarget);
 	bool ExecuteFlankAttack(CvTacticalTarget& kTarget);
-	void ExecuteCloseOnTarget(CvTacticalTarget& kTarget, CvTacticalDominanceZone* pZone, bool bOffensive);
+	void ExecuteCloseOnTarget(CvTacticalTarget& kTarget, CvTacticalDominanceZone* pZone);
 	void ExecuteWithdrawMoves();
 	void ExecuteEscortEmbarkedMoves();
 
@@ -885,12 +886,9 @@ private:
 	bool FindClosestNavalOperationUnit(CvPlot* pTargetPlot, const std::map<int,ReachablePlots>& movePlots, bool bEscortedUnits);
 
 #if defined(MOD_AI_SMART_AIR_TACTICS)
-public:
-	int SamePlotFound(vector<CvPlot*> plotData, CvPlot* plotXy);
-private:
 	void FindAirUnitsToAirSweep(CvPlot* pTarget);
-	CvUnit* GetProbableInterceptor(CvPlot* pTarget) const;
 #endif
+
 	int ComputeTotalExpectedDamage(CvTacticalTarget* target, CvPlot* pTargetPlot);
 	int ComputeTotalExpectedCityBombardDamage(CvUnit* pTarget);
 	bool IsExpectedToDamageWithRangedAttack(CvUnit* pAttacker, CvPlot* pTarget, int iMinDamage=0);
@@ -910,7 +908,6 @@ private:
 	bool IsMediumPriorityCivilianTarget(CvTacticalTarget* pTarget);
 
 	// Blocking position functions
-	bool AssignFlankingUnits(int iNumUnitsRequiredToFlank);
 	bool AssignDeployingUnits(int iNumUnitsRequiredToDeploy);
 	void PerformChosenMoves();
 	void MoveGreatGeneral(CvArmyAI* pArmyAI = NULL);
@@ -918,11 +915,7 @@ private:
 	void RemoveChosenUnits(int iStartIndex = 0);
 	int NumUniqueUnitsLeft();
 	bool IsInChosenMoves(CvPlot* pPlot);
-	bool ChooseRemainingAssignments(int iNumUnitsDesired, int iNumUnitsAcceptable);
 
-	int ScoreAssignments(bool bCanLeaveOpenings);
-	int ScoreCloseOnPlots(CvPlot* pTarget, const std::map<int,ReachablePlots>& unitMovePlots);
-	int ScoreHedgehogPlots(CvPlot* pTarget, const std::map<int,ReachablePlots>& unitMovePlots);
 	int ScoreGreatGeneralPlot(CvUnit* pGeneral, CvPlot* pTarget);
 
 	// Logging functions
@@ -995,13 +988,13 @@ struct STacticalAssignment
 	int iFromPlotIndex;
 	int iToPlotIndex;
 	int iRemainingMoves;
-	bool bIsCombat;
+	bool bIsCombatUnit;
 
 	int iDamage; //just in case of attack, not set in constructor
 
 	//convenience constructor
-	STacticalAssignment(int iFromPlot = 0, int iToPlot = 0, int iUnit = 0, int iRemainingMoves_= 0, bool bIsCombat_ = true, int iScore_ = 0, eAssignmentType eType_ = A_FINISH) :
-		iFromPlotIndex(iFromPlot), iToPlotIndex(iToPlot), iUnitID(iUnit), iRemainingMoves(iRemainingMoves_), bIsCombat(bIsCombat_), iScore(iScore_), eType(eType_), iDamage(0) {}
+	STacticalAssignment(int iFromPlot = 0, int iToPlot = 0, int iUnit = 0, int iRemainingMoves_= 0, bool bIsCombatUnit_ = true, int iScore_ = 0, eAssignmentType eType_ = A_FINISH) :
+		iFromPlotIndex(iFromPlot), iToPlotIndex(iToPlot), iUnitID(iUnit), iRemainingMoves(iRemainingMoves_), bIsCombatUnit(bIsCombatUnit_), iScore(iScore_), eType(eType_), iDamage(0) {}
 
 	//sort descending
 	bool operator<(const STacticalAssignment& rhs) { return iScore>rhs.iScore; }
@@ -1009,7 +1002,7 @@ struct STacticalAssignment
 
 struct SUnitStats
 {
-	enum eMovementStrategy { MS_NONE,MS_FIRSTLINE,MS_SECONDLINE,MS_THIRDLINE,MS_SUPPORT };
+	enum eMovementStrategy { MS_NONE,MS_FIRSTLINE,MS_SECONDLINE,MS_THIRDLINE,MS_SUPPORT }; //we should probably differentiate between regular ranged and siege ranged ...
 
 	int iUnitID;
 	int iPlotIndex;
@@ -1107,8 +1100,8 @@ protected:
 	map<int, int> tacticalPlotLookup; //tactical plots don't store adjacency info, so we need to take a detour via CvPlot
 	map<int,ReachablePlots> reachablePlotLookup; //reachable plots, only for those units where it's different from parent
 	map<int,set<int>> rangeAttackPlotLookup; //plots for a potential ranged attack, only for those units where it's different from parent
-	set<int> freedPlots; //plot indices for killed enemy units, to be ignored for ZOC
-	set<int> killedEnemies; //enemy units which were killed, to be ignored for danger 
+	PlotIndexContainer freedPlots; //plot indices for killed enemy units, to be ignored for ZOC
+	UnitIdContainer killedEnemies; //enemy units which were killed, to be ignored for danger 
 
 	//set in constructor, constant afterwards
 	PlayerTypes ePlayer;
@@ -1169,7 +1162,7 @@ public:
 	const CvTacticalPosition* getParent() const { return parentPosition; }
 	const vector<CvTacticalPosition*>& getChildren() const { return childPositions; }
 	vector<STacticalAssignment> getAssignments() const { return assignedMoves; }
-	const set<int>& getKilledEnemies() const { return killedEnemies; }
+	const UnitIdContainer& getKilledEnemies() const { return killedEnemies; }
 
 	//sort descending cumulative score. only makes sense for "completed" positions
 	bool operator<(const CvTacticalPosition& rhs) { return iTotalScore>rhs.iTotalScore; }
@@ -1186,7 +1179,7 @@ namespace TacticalAIHelpers
 	bool SortBlockingUnitByDistanceAscending(const CvBlockingUnit& obj1, const CvBlockingUnit& obj2);
 	bool SortByExpectedTargetDamageDescending(const CvTacticalUnit& obj1, const CvTacticalUnit& obj2);
 
-	ReachablePlots GetAllPlotsInReach(const CvUnit* pUnit, const CvPlot* pStartPlot, int iFlags, int iMinMovesLeft=0, int iStartMoves=-1, const set<int>& plotsToIgnoreForZOC=set<int>());
+	ReachablePlots GetAllPlotsInReachThisTurn(const CvUnit* pUnit, const CvPlot* pStartPlot, int iFlags, int iMinMovesLeft=0, int iStartMoves=-1, const PlotIndexContainer& plotsToIgnoreForZOC=PlotIndexContainer());
 	int GetPlotsUnderRangedAttackFrom(const CvUnit* pUnit, const CvPlot* pBasePlot, std::set<int>& resultSet, bool bOnlyWithEnemy, bool bIgnoreVisibility);
 	int GetPlotsUnderRangedAttackFrom(const CvUnit* pUnit, ReachablePlots& basePlots, std::set<int>& resultSet, bool bOnlyWithEnemy,  bool bIgnoreVisibility);
 
@@ -1205,8 +1198,13 @@ namespace TacticalAIHelpers
 	CvPlot* GetFirstTargetInRange(CvUnit* pUnit, bool bMustBeAbleToKill=false, bool bIncludeCivilians=true);
 
 #if defined(MOD_CORE_NEW_DEPLOYMENT_LOGIC)
-	bool FindBestAssignmentsForUnits(const vector<CvUnit*>& vUnits, CvPlot* pTarget, eAggressionLevel eAggLvl, int iMaxBranches, int iMaxFinishedPositions, vector<STacticalAssignment>& result);
+	bool FindBestOffensiveAssignment(const vector<CvUnit*>& vUnits, CvPlot* pTarget, eAggressionLevel eAggLvl, int iMaxBranches, int iMaxFinishedPositions, vector<STacticalAssignment>& result);
+	bool FindBestDefensiveAssignment(const vector<CvUnit*>& vUnits, CvPlot* pTarget, vector<STacticalAssignment>& result);
 	bool ExecuteUnitAssignments(PlayerTypes ePlayer, const vector<STacticalAssignment>& vAssignments);
+
+	bool IsEnemyKilled(const vector<STacticalAssignment>& moves);
+	CvPlot* EndTurnPlot(const vector<STacticalAssignment>& moves, int iUnitID);
+
 #endif
 
 }

@@ -75,6 +75,9 @@
 	SET RequiresFaithPurchaseEnabled = '1'
 	WHERE Type = 'UNIT_ARCHAEOLOGIST';
 
+	-- cap for archaeologists
+	UPDATE UnitClasses SET MaxPlayerInstances = '3' WHERE Type = 'UNITCLASS_ARCHAEOLOGIST';
+
 INSERT INTO Unit_ScalingFromOwnedImprovements
 	(UnitType, ImprovementType, Amount)
 VALUES
@@ -108,7 +111,7 @@ INSERT INTO Missions
 VALUES
 	('MISSION_FREE_LUXURY', 'TXT_KEY_MISSION_FREE_LUXURY', 'TXT_KEY_MISSION_FREE_LUXURY_HELP', 'TXT_KEY_MISSION_FREE_LUXURY_HELP_DISABLED', 'ENTITY_EVENT_GREAT_EVENT', 20, 0, 0, 0, NULL, 0, 0, 0, 0, NULL, 0, 0, 0, 0, 199, 1, 16, 'UNIT_ACTION_ATLAS');
 
-
+INSERT INTO Unit_FreePromotions (UnitType, PromotionType) SELECT 'UNIT_NUCLEAR_MISSILE' , 'PROMOTION_NUCLEAR_SILO' WHERE EXISTS (SELECT * FROM COMMUNITY WHERE Type='COMMUNITY_CORE_BALANCE_UNITS' AND Value= 1 );
 
 -- All civs start with a pathfinder
 

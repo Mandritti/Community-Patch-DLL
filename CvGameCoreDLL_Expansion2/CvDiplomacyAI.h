@@ -217,7 +217,8 @@ public:
 	/////////////////////////////////////////////////////////
 
 	void MakeWar();
-	void DeclareWar(PlayerTypes ePlayer);
+	bool DeclareWar(PlayerTypes ePlayer);
+	bool DeclareWar(TeamTypes eTeam);
 
 	// War Face: If we're planning for war, how are we acting towards ePlayer?
 	WarFaceTypes GetWarFaceWithPlayer(PlayerTypes ePlayer) const;
