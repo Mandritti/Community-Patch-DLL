@@ -85,9 +85,6 @@
 
 #define MOD_CORE_RESILIENT_PANTHEONS
 
-///	air units take a flat amount of damage in each air strike (plus interceptions)
-#define MOD_CORE_AIRCOMBAT_SIMPLIFIED
-
 #define MOD_BALANCE_CORE_OBSERVER_CHANGES
 	#define AUI_PLOT_OBSERVER_SEE_ALL_PLOTS
 	#define AUI_GAME_OBSERVER_CAN_OPEN_CITIES
@@ -131,12 +128,8 @@
 /// Uses a different algorithm for scoring voting on world religion
 #define AUI_VOTING_TWEAKED_WORLD_RELIGION
 
-/// Checks all of player's cities for whether or not a city is within conversion target range, not just the player's capital
-#define AUI_RELIGION_CONVERSION_TARGET_NOT_JUST_CAPITAL
 /// Weighs different yield types differently depending on flavor and citizen value
 #define AUI_RELIGION_SCORE_BELIEF_AT_PLOT_FLAVOR_YIELDS
-/// When adding the terrain yield change of a belief, only do so if the current feature on the plot is additive (so eg. Dance with the Aurora won't be overvalued)
-#define AUI_RELIGION_SCORE_BELIEF_AT_PLOT_SCORE_TERRAIN_CONSIDER_FEATURE
 /// Weighs different yield types differently depending on flavor and citizen value
 #define AUI_RELIGION_SCORE_BELIEF_AT_CITY_FLAVOR_YIELDS
 /// Considers grand strategies when scoring things like beliefs that only function when at peace
@@ -145,12 +138,8 @@
 #define AUI_RELIGION_FIX_SCORE_BELIEF_AT_CITY_RIVER_HAPPINESS
 /// If a building for which yield improvement is being calculated is a wonder of any kind, divide the yield by the city count (so there's effective only one instance being scored in the civ)
 #define AUI_RELIGION_SCORE_BELIEF_AT_CITY_YIELDS_FROM_WONDERS_COUNT_ONCE
-/// When scoring a belief that unlocks faith purchases of units, disregard eras that have already passed
-#define AUI_RELIGION_FIX_SCORE_BELIEF_FOR_PLAYER_UNLOCKS_UNITS_DISREGARD_OLD_ERAS
 /// Divides a city's targetting score for missionaries by this value if passive pressure is enough to eventually convert the city
 #define AUI_RELIGION_SCORE_CITY_FOR_MISSIONARY_DIVIDER_IF_PASSIVE_PRESSURE_ENOUGH (10)
-/// When finding a nearby conversion target, cities that will convert to the AI's religion passively are ignored
-#define AUI_RELIGION_HAVE_NEARBY_CONVERSION_TARGET_IGNORE_TARGET_THAT_WILL_CONVERT_PASSIVELY
 /// Scales the non-spaceship scoring of Great Engineers with Wonder Competitiveness
 #define AUI_RELIGION_GET_DESIRED_FAITH_GREAT_PERSON_ENGINEER_USES_WONDER_COMPETITIVENESS (1000.0 / 3.0)
 /// Fixes the bug where the AI scores inquisitors if it already has enough, not when it needs them
@@ -164,6 +153,9 @@
 
 // track how much damage a unit takes per turn in order to better predict whether it might die
 #define MOD_CORE_PER_TURN_DAMAGE
+
+// allow venice to receive settlers from wonders, policies etc (but not to build them)
+#define MOD_VENETIAN_SETTLERS
 
 // Uncomment this line to include the achievements hack code
 // #define ACHIEVEMENT_HACKS
@@ -511,8 +503,6 @@
 #define MOD_UNITS_MAX_HP                            gCustomMods.isUNITS_MAX_HP()
 // Enables the XP times 100 API (v77)
 #define MOD_UNITS_XP_TIMES_100                      gCustomMods.isUNITS_XP_TIMES_100()
-// Restricts worker suggestions to local tiles
-#define MOD_UNITS_LOCAL_WORKERS                     gCustomMods.isUNITS_LOCAL_WORKERS()
 // Hovering unit can only heal over land
 #define MOD_UNITS_HOVERING_LAND_ONLY_HEAL           gCustomMods.isUNITS_HOVERING_LAND_ONLY_HEAL()
 
@@ -1283,6 +1273,7 @@ enum BattleTypeTypes
 #define GAMEEVENT_CityRazed					"CityRazed", "iii"
 #define GAMEEVENT_CityInvestedBuilding		"CityInvestedBuilding", "iiii"
 #define GAMEEVENT_CityInvestedUnit			"CityInvestedUnit", "iiii"
+#define GAMEEVENT_ConquerorValidBuilding	"ConquerorValidBuilding", "iiii"
 // City and Player Events
 #define GAMEEVENT_EventActivated			"EventActivated", "ii"
 #define GAMEEVENT_CityEventActivated		"CityEventActivated", "iii"

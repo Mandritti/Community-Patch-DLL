@@ -4045,7 +4045,7 @@ void CvPlayerCulture::ChangeInfluenceOn(PlayerTypes eOtherPlayer, int iBaseInflu
         iInfluence = iInfluence * GC.getGame().getGameSpeedInfo().getCulturePercent() / 100;
     }
     
-    if (bApplyModifiers) {
+    if (bApplyModifiers && m_pPlayer->getCapitalCity()) {
         int iModifier = m_pPlayer->getCapitalCity()->GetCityCulture()->GetTourismMultiplier(eOtherPlayer, false, false, false, false, false);
         if (iModifier != 0) {
             iInfluence = iInfluence * (100 + iModifier) / 100;
@@ -5309,6 +5309,12 @@ int CvPlayerCulture::ComputeWarWeariness()
 				int iWarDamage = m_pPlayer->GetDiplomacyAI()->GetWarValueLost(kPlayer.GetID());
 				iWarDamage += kPlayer.GetDiplomacyAI()->GetWarValueLost(m_pPlayer->GetID()) / 2;
 
+				if (kPlayer.GetPlayerTraits()->GetEnemyWarWearinessModifier() != 0)
+				{
+					iWarDamage *= (100 + kPlayer.GetPlayerTraits()->GetEnemyWarWearinessModifier());
+					iWarDamage /= 100;
+				}
+
 				int iWarTurns = m_pPlayer->GetDiplomacyAI()->GetPlayerNumTurnsAtWar(kPlayer.GetID());
 				iWarTurns -= GD_INT_GET(WAR_MAJOR_MINIMUM_TURNS);
 
@@ -5379,7 +5385,11 @@ int CvPlayerCulture::ComputeWarWeariness()
 			iRisingWarWeariness = 100;
 		}
 
-		iRisingWarWeariness *= (100 - m_pPlayer->GetWarWearinessModifier());
+		int iMod = m_pPlayer->GetWarWearinessModifier() + m_pPlayer->GetPlayerTraits()->GetWarWearinessModifier();
+		if (iMod > 100)
+			iMod = 100;
+
+		iRisingWarWeariness *= (100 - iMod);
 		iRisingWarWeariness /= 100;
 	}
 

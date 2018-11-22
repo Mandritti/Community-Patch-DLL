@@ -116,6 +116,9 @@ public:
 	void UpdateGlobalStaticYields();
 	void SetGlobalStaticYield(YieldTypes eYield, int iValue);
 	int GetGlobalStaticYield(YieldTypes eYield) const;
+
+	void SetStaticNeedAdditives(YieldTypes eYield, int iValue);
+	int GetStaticNeedAdditives(YieldTypes eYield) const;
 #endif
 
 #if defined(MOD_BALANCE_CORE_EVENTS)
@@ -737,10 +740,6 @@ public:
 	void changeFood(int iChange);
 	void changeFoodTimes100(int iChange);
 
-	int getFoodKept() const;
-	void setFoodKept(int iNewValue);
-	void changeFoodKept(int iChange);
-
 	int getMaxFoodKeptPercent() const;
 	void changeMaxFoodKeptPercent(int iChange);
 
@@ -834,7 +833,7 @@ public:
 	int GetBuildingClassHappinessFromReligion() const;
 	void UpdateBuildingClassHappinessFromReligion();
 	int getHappinessDelta() const;
-	int getHappinessThresholdMod(YieldTypes eYield, int iMod = 0) const;
+	int getHappinessThresholdMod(YieldTypes eYield, int iMod = 0, bool bForceGlobal = false) const;
 	int getThresholdSubtractions(YieldTypes eYield) const;
 	int getThresholdAdditions(YieldTypes eYield = NO_YIELD) const;
 	int getUnhappyCitizenCount() const;
@@ -1367,7 +1366,7 @@ public:
 	void changeSpecialistFreeExperience(int iChange);
 
 	void updateStrengthValue();
-	int getStrengthValue(bool bForRangeStrike = false) const;
+	int getStrengthValue(bool bForRangeStrike = false, bool bIgnoreBuildingDefense = false) const;
 	int GetPower() const;
 
 	int getDamage() const;
@@ -1462,11 +1461,9 @@ public:
 
 	CvPlot* GetPlotForNewUnit(UnitTypes eUnitType) const;
 	bool CanPlaceUnitHere(UnitTypes eUnitType) const;
-	bool IsCanPurchase(bool bTestPurchaseCost, bool bTestTrainable, UnitTypes eUnitType, BuildingTypes eBuildingType, ProjectTypes eProjectType, YieldTypes ePurchaseYield);
+	bool IsCanPurchase(bool bTestPurchaseCost, bool bTestTrainable, UnitTypes eUnitType, BuildingTypes eBuildingType, ProjectTypes eProjectType, YieldTypes ePurchaseYield); //slow version
+	bool IsCanPurchase(const std::vector<int>& vPreExistingBuildings, bool bTestPurchaseCost, bool bTestTrainable, UnitTypes eUnitType, BuildingTypes eBuildingType, ProjectTypes eProjectType, YieldTypes ePurchaseYield); //fast version
 	void Purchase(UnitTypes eUnitType, BuildingTypes eBuildingType, ProjectTypes eProjectType, YieldTypes ePurchaseYield);
-
-	PlayerTypes getLiberationPlayer() const;
-	void liberate();
 
 	CvCityStrategyAI* GetCityStrategyAI() const;
 	CvCityCitizens* GetCityCitizens() const;
@@ -1741,7 +1738,7 @@ protected:
 	FAutoVariable<int, CvCity> m_iLocalGainlessPillageCount;
 #endif
 	FAutoVariable<int, CvCity> m_iFood;
-	FAutoVariable<int, CvCity> m_iFoodKept;
+	FAutoVariable<int, CvCity> m_iFoodKept; //unused
 	FAutoVariable<int, CvCity> m_iMaxFoodKeptPercent;
 	FAutoVariable<int, CvCity> m_iOverflowProduction;
 	FAutoVariable<int, CvCity> m_iFeatureProduction;
@@ -1817,6 +1814,7 @@ protected:
 #endif
 #if defined(MOD_BALANCE_CORE)
 	FAutoVariable<std::vector<int>, CvCity> m_aiStaticGlobalYield;
+	FAutoVariable<std::vector<int>, CvCity> m_aiStaticNeedAdditives;
 	FAutoVariable<std::vector<int>, CvCity> m_aiLongestPotentialTradeRoute;
 	FAutoVariable<std::vector<int>, CvCity> m_aiNumTimesAttackedThisTurn;
 	FAutoVariable<std::vector<int>, CvCity> m_aiYieldFromKnownPantheons;
